@@ -25,14 +25,18 @@ public class TelaAlteracao extends JFrame {
         painel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         painel.add(new JLabel("Usuário:"));
-        campoUsuario = new JTextField();
+
+        campoUsuario = new JTextField(usuarioLogado);
+        campoUsuario.setEditable(false);
         painel.add(campoUsuario);
 
         painel.add(new JLabel("Novo nome:"));
+
         campoNome = new JTextField();
         painel.add(campoNome);
 
         painel.add(new JLabel("Nova senha:"));
+
         campoSenha = new JPasswordField();
         painel.add(campoSenha);
 
@@ -54,24 +58,53 @@ public class TelaAlteracao extends JFrame {
 
     private void alterar() {
 
-        String usuario = campoUsuario.getText();
-        String nome = campoNome.getText();
+        String nome = campoNome.getText().trim();
         String senha = new String(campoSenha.getPassword());
 
-        if (usuario.isBlank() || nome.isBlank() || senha.isBlank()) {
-            JOptionPane.showMessageDialog(this,
-                    "Preencha todos os campos!");
+        if (nome.isBlank() || senha.isBlank()) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Preencha nome e nova senha."
+            );
+
             return;
         }
 
-        Usuario pessoa = new Usuario(nome, usuario, senha);
+        try {
 
-        if (pessoa.alteraUsuario()) {
-            JOptionPane.showMessageDialog(this,
-                    "Dados alterados com sucesso!");
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Não foi possível alterar os dados. Verifique o usuário.");
+            Usuario pessoa = new Usuario(
+                    nome,
+                    usuarioLogado,
+                    senha
+            );
+
+            boolean resultado = pessoa.alteraUsuario();
+
+            if (resultado) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Dados alterados com sucesso!"
+                );
+
+                new TelaLogin().setVisible(true);
+                dispose();
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Não foi possível alterar os dados."
+                );
+            }
+
+        } catch (java.sql.SQLException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Erro no banco de dados: " + ex.getMessage()
+            );
         }
     }
 }

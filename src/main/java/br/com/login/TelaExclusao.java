@@ -3,10 +3,10 @@ package br.com.login;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 public class TelaExclusao extends JFrame {
 
-    private JTextField campoUsuario;
     private String usuarioLogado;
 
     public TelaExclusao(String usuario) {
@@ -18,19 +18,22 @@ public class TelaExclusao extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel painel = new JPanel(new GridLayout(3, 2, 10, 10));
+        JPanel painel = new JPanel(new GridLayout(3, 1, 10, 10));
         painel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        painel.add(new JLabel("Usuário:"));
-
-        campoUsuario = new JTextField(usuarioLogado);
-        painel.add(campoUsuario);
+        painel.add(new JLabel(
+                "Excluir conta de: " + usuarioLogado,
+                SwingConstants.CENTER
+        ));
 
         JButton botaoVoltar = new JButton("Voltar");
         JButton botaoExcluir = new JButton("Excluir usuário");
 
-        painel.add(botaoVoltar);
-        painel.add(botaoExcluir);
+        JPanel painelBotoes = new JPanel(new FlowLayout());
+        painelBotoes.add(botaoVoltar);
+        painelBotoes.add(botaoExcluir);
+
+        painel.add(painelBotoes);
 
         botaoVoltar.addActionListener(e -> {
             new TelaPrincipal(usuarioLogado).setVisible(true);
@@ -44,36 +47,47 @@ public class TelaExclusao extends JFrame {
 
     private void excluir() {
 
-        String usuario = campoUsuario.getText();
-
-        if (usuario.isBlank()) {
-            JOptionPane.showMessageDialog(this,
-                    "Informe o usuário que deseja excluir!");
-            return;
-        }
-
         int confirmacao = JOptionPane.showConfirmDialog(
                 this,
-                "Tem certeza que deseja excluir este usuário?",
+                "Tem certeza que deseja excluir sua conta?",
                 "Confirmar exclusão",
                 JOptionPane.YES_NO_OPTION
         );
 
-        if (confirmacao == JOptionPane.YES_OPTION) {
+        if (confirmacao != JOptionPane.YES_OPTION) {
+            return;
+        }
 
-            Usuario pessoa = new Usuario("", usuario, "");
+        try {
 
-            if (pessoa.excluiUsuario()) {
-                JOptionPane.showMessageDialog(this,
-                        "Usuário excluído com sucesso!");
+            Usuario pessoa = new Usuario("", usuarioLogado, "");
+
+            boolean excluido = pessoa.excluiUsuario();
+
+            if (excluido) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Usuário excluído com sucesso!"
+                );
 
                 new TelaLogin().setVisible(true);
                 dispose();
 
             } else {
-                JOptionPane.showMessageDialog(this,
-                        "Usuário não encontrado!");
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Usuário não encontrado!"
+                );
             }
+
+        } catch (SQLException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Erro no banco de dados: " + ex.getMessage()
+            );
         }
     }
 }

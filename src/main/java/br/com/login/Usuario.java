@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -23,163 +24,124 @@ public class Usuario {
         return nome;
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
     public String getUsuario() {
         return usuario;
-    }
-
-    public void setUsuario(String usuario) {
-        this.usuario = usuario;
     }
 
     public String getSenha() {
         return senha;
     }
 
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
     public void setSenha(String senha) {
         this.senha = senha;
     }
 
-    // Verifica se o usuario ja esta cadastrado
-    public static boolean verificaUsuario(String usuario) {
-
-        String sql = "SELECT usuario FROM usuario WHERE usuario = ?";
-
-        try (Connection conexao = Conexao.conectar();
-             PreparedStatement comando = conexao.prepareStatement(sql)) {
-
-            comando.setString(1, usuario);
-
-            ResultSet resultado = comando.executeQuery();
-
-            return resultado.next();
-
-        } catch (SQLException erro) {
-            System.out.println("Erro ao verificar usuario: " + erro.getMessage());
-            return false;
-        }
-    }
-
-  
-    private String gerarMD5(String senha) {
-
+    private String gerarMD5(String texto) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] resumo = md.digest(senha.getBytes());
+            byte[] bytes = md.digest(
+                    texto.getBytes(StandardCharsets.UTF_8));
 
             StringBuilder resultado = new StringBuilder();
 
-            for (byte b : resumo) {
+            for (byte b : bytes) {
                 resultado.append(String.format("%02x", b));
             }
 
             return resultado.toString();
 
-        } catch (NoSuchAlgorithmException erro) {
-            throw new RuntimeException("Erro ao gerar MD5", erro);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    // Cadastra o usuario no banco de dados
-    public boolean cadastraUsuario() {
+    public static boolean verificaUsuario(String usuario)
+            throws SQLException {
 
-        String sql = "INSERT INTO usuario (usuario, nome, senha) VALUES (?, ?, ?)";
+        String sql = "SELECT usuario FROM usuario WHERE usuario = ?";
 
-        if (verificaUsuario(this.usuario)) {
-            System.out.println("Este usuario ja esta cadastrado!");
+        try (Connection con = Conexao.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, usuario);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    public boolean cadastraUsuario() throws SQLException {
+
+        if (verificaUsuario(usuario)) {
             return false;
         }
 
-        try (Connection conexao = Conexao.conectar();
-             PreparedStatement comando = conexao.prepareStatement(sql)) {
+        String sql = "INSERT INTO usuario (nome, usuario, senha)"
+                + " VALUES (?, ?, ?)";
 
-            comando.setString(1, this.usuario);
-            comando.setString(2, this.nome);
-            comando.setString(3, gerarMD5(this.senha));
+        try (Connection con = Conexao.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-            comando.executeUpdate();
+            ps.setString(1, nome);
+            ps.setString(2, usuario);
+            ps.setString(3, gerarMD5(senha));
 
-            System.out.println("Usuario cadastrado com sucesso!");
-            return true;
-
-        } catch (SQLException erro) {
-            System.out.println("Erro ao cadastrar usuario: " + erro.getMessage());
-            return false;
+            return ps.executeUpdate() == 1;
         }
     }
-    // Verifica se o usuario e a senha estao corretos
-public boolean validarLogin() {
 
-    String sql = "SELECT * FROM usuario WHERE usuario = ? AND senha = ?";
+    public boolean validarLogin() throws SQLException {
 
-    try (Connection conexao = Conexao.conectar();
-         PreparedStatement comando = conexao.prepareStatement(sql)) {
+        String sql = "SELECT usuario FROM usuario"
+                + " WHERE usuario = ? AND senha = ?";
 
-        comando.setString(1, this.usuario);
-        comando.setString(2, gerarMD5(this.senha));
+        try (Connection con = Conexao.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-        ResultSet resultado = comando.executeQuery();
+            ps.setString(1, usuario);
+            ps.setString(2, gerarMD5(senha));
 
-        return resultado.next();
-
-    } catch (SQLException erro) {
-        System.out.println("Erro ao validar login: " + erro.getMessage());
-        return false;
-    }
-}
-// Altera os dados do usuario no banco de dados
-public boolean alteraUsuario() {
-
-    String sql = "UPDATE usuario SET nome = ?, senha = ? WHERE usuario = ?";
-
-    try (Connection conexao = Conexao.conectar();
-         PreparedStatement comando = conexao.prepareStatement(sql)) {
-
-        comando.setString(1, this.nome);
-        comando.setString(2, gerarMD5(this.senha));
-        comando.setString(3, this.usuario);
-
-        int linhasAlteradas = comando.executeUpdate();
-
-        if (linhasAlteradas > 0) {
-            System.out.println("Usuario alterado com sucesso!");
-            return true;
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         }
-
-        System.out.println("Usuario nao encontrado!");
-        return false;
-
-    } catch (SQLException erro) {
-        System.out.println("Erro ao alterar usuario: " + erro.getMessage());
-        return false;
     }
-}
-// Exclui o usuario do banco de dados
-public boolean excluiUsuario() {
 
-    String sql = "DELETE FROM usuario WHERE usuario = ?";
+    public boolean alteraUsuario() throws SQLException {
 
-    try (Connection conexao = Conexao.conectar();
-         PreparedStatement comando = conexao.prepareStatement(sql)) {
+        String sql = "UPDATE usuario SET nome = ?, senha = ?"
+                + " WHERE usuario = ?";
 
-        comando.setString(1, this.usuario);
+        try (Connection con = Conexao.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
 
-        int linhasExcluidas = comando.executeUpdate();
+            ps.setString(1, nome);
+            ps.setString(2, gerarMD5(senha));
+            ps.setString(3, usuario);
 
-        if (linhasExcluidas > 0) {
-            System.out.println("Usuario excluido com sucesso!");
-            return true;
+            return ps.executeUpdate() == 1;
         }
-
-        System.out.println("Usuario nao encontrado!");
-        return false;
-
-    } catch (SQLException erro) {
-        System.out.println("Erro ao excluir usuario: " + erro.getMessage());
-        return false;
     }
-}
+
+    public boolean excluiUsuario() throws SQLException {
+
+        String sql = "DELETE FROM usuario WHERE usuario = ?";
+
+        try (Connection con = Conexao.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, usuario);
+
+            return ps.executeUpdate() == 1;
+        }
+    }
 }

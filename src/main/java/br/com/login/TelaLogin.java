@@ -3,6 +3,7 @@ package br.com.login;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 public class TelaLogin extends JFrame {
 
@@ -17,6 +18,7 @@ public class TelaLogin extends JFrame {
         setLocationRelativeTo(null);
 
         JPanel painel = new JPanel(new GridLayout(3, 2, 10, 10));
+
         painel.setBorder(
             BorderFactory.createEmptyBorder(20, 20, 20, 20)
         );
@@ -53,32 +55,45 @@ public class TelaLogin extends JFrame {
         String senha = new String(campoSenha.getPassword());
 
         if (usuario.isBlank() || senha.isBlank()) {
+
             JOptionPane.showMessageDialog(this,
                     "Preencha o usuário e a senha!");
+
             return;
         }
 
-        Usuario pessoa = new Usuario("", usuario, senha);
+        try {
 
-        if (pessoa.validarLogin()) {
+            Usuario pessoa = new Usuario("", usuario, senha);
+
+            if (pessoa.validarLogin()) {
+
+                JOptionPane.showMessageDialog(this,
+                        "Login realizado com sucesso!");
+
+                new TelaPrincipal(usuario).setVisible(true);
+
+                dispose();
+
+            } else {
+
+                JOptionPane.showMessageDialog(this,
+                        "Usuário ou senha incorretos!");
+            }
+
+        } catch (SQLException ex) {
 
             JOptionPane.showMessageDialog(this,
-                    "Login realizado com sucesso!");
-
-            new TelaPrincipal(usuario).setVisible(true);
-            dispose();
-
-        } else {
-
-            JOptionPane.showMessageDialog(this,
-                    "Usuário ou senha incorretos!");
+                    "Erro ao conectar ao banco: " + ex.getMessage());
         }
     }
 
     public static void main(String[] args) {
 
         SwingUtilities.invokeLater(() -> {
+
             TelaLogin tela = new TelaLogin();
+
             tela.setVisible(true);
         });
     }

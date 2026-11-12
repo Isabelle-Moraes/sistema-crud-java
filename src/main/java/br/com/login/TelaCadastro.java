@@ -1,23 +1,24 @@
-
 package br.com.login;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 public class TelaCadastro extends JFrame {
 
     private JTextField campoNome;
     private JTextField campoUsuario;
     private JPasswordField campoSenha;
+    private JPasswordField campoConfirmar;
 
     public TelaCadastro() {
 
         setTitle("Cadastro de Usuário");
-        setSize(400, 300);
+        setSize(450, 350);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel painel = new JPanel(new GridLayout(4, 2, 10, 10));
+        JPanel painel = new JPanel(new GridLayout(5, 2, 10, 10));
         painel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         painel.add(new JLabel("Nome completo:"));
@@ -32,15 +33,15 @@ public class TelaCadastro extends JFrame {
         campoSenha = new JPasswordField();
         painel.add(campoSenha);
 
+        painel.add(new JLabel("Confirmar senha:"));
+        campoConfirmar = new JPasswordField();
+        painel.add(campoConfirmar);
+
         JButton botaoCadastrar = new JButton("Cadastrar");
         JButton botaoVoltar = new JButton("Voltar ao Login");
 
-        JPanel painelBotoes = new JPanel(new FlowLayout());
-        painelBotoes.add(botaoVoltar);
-        painelBotoes.add(botaoCadastrar);
-
-        painel.add(new JLabel());
-        painel.add(painelBotoes);
+        painel.add(botaoVoltar);
+        painel.add(botaoCadastrar);
 
         botaoCadastrar.addActionListener(e -> cadastrar());
 
@@ -54,33 +55,70 @@ public class TelaCadastro extends JFrame {
 
     private void cadastrar() {
 
-        String nome = campoNome.getText();
-        String usuario = campoUsuario.getText();
-        String senha = new String(campoSenha.getPassword());
+        String nome = campoNome.getText().trim();
+        String usuario = campoUsuario.getText().trim();
 
-        if (nome.isBlank() || usuario.isBlank() || senha.isBlank()) {
-            JOptionPane.showMessageDialog(this,
-                    "Preencha todos os campos!");
+        String senha = new String(campoSenha.getPassword());
+        String confirmar = new String(campoConfirmar.getPassword());
+
+        if (nome.isBlank() || usuario.isBlank()
+                || senha.isBlank() || confirmar.isBlank()) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Preencha todos os campos."
+            );
             return;
         }
 
-        Usuario novoUsuario = new Usuario(nome, usuario, senha);
+        if (!senha.equals(confirmar)) {
 
-        if (novoUsuario.cadastraUsuario()) {
-            JOptionPane.showMessageDialog(this,
-                    "Usuário cadastrado com sucesso!");
+            JOptionPane.showMessageDialog(
+                    this,
+                    "As senhas não são iguais."
+            );
+            return;
+        }
 
-            campoNome.setText("");
-            campoUsuario.setText("");
-            campoSenha.setText("");
+        try {
 
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Não foi possível cadastrar. Verifique se o usuário já existe.");
+            Usuario novoUsuario = new Usuario(
+                    nome,
+                    usuario,
+                    senha
+            );
+
+            boolean cadastrado = novoUsuario.cadastraUsuario();
+
+            if (cadastrado) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Cadastro realizado com sucesso!"
+                );
+
+                new TelaLogin().setVisible(true);
+                dispose();
+
+            } else {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Este usuário já está cadastrado."
+                );
+            }
+
+        } catch (SQLException ex) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Erro no banco de dados: " + ex.getMessage()
+            );
         }
     }
 
     public static void main(String[] args) {
+
         SwingUtilities.invokeLater(() -> {
             TelaCadastro tela = new TelaCadastro();
             tela.setVisible(true);
